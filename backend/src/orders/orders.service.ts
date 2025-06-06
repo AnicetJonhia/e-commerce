@@ -1,56 +1,126 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Order } from './interfaces/order.interface';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order, OrderStatus } from './entities/order.entity';
+import { OrderItem } from './entities/order-item.entity';
+import { Product } from '../products/entities/product.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
-  private readonly orders: Order[] = [];
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(OrderItem)
+    private readonly orderItemRepository: Repository<OrderItem>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
 
   async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-    const total = createOrderDto.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+    // Validate products and calculate total
+    let total = 0;
+    const orderItems: Partial<OrderItem>[] = [];
 
-    const order: Order = {
-      id: Math.random().toString(36).substr(2, 9),
+    for (const item of createOrderDto.items) {
+      const product = await this.productRepository.findOne({
+        where: { id: item.productId, isActive: true },
+      });
+
+      if (!product) {
+        throw new NotFoundException(`Product with ID ${item.productId} not found`);
+      }
+
+      if (product.stock < item.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`
+        );
+      }
+
+      const itemPrice = product.discountedPrice;
+      total += itemPrice * item.quantity;
+
+      orderItems.push({
+        productId: product.id,
+        productName: product.name,
+        quantity: item.quantity,
+        price: itemPrice,
+      });
+
+      // Update product stock
+      product.stock -= item.quantity;
+      await this.productRepository.save(product);
+    }
+
+    // Create order
+    const order = this.orderRepository.create({
       userId,
-      items: createOrderDto.items,
       total,
-      status: 'pending',
       shippingAddress: createOrderDto.shippingAddress,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      status: OrderStatus.PENDING,
+    });
 
-    this.orders.push(order);
-    return order;
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Create order items
+    for (const itemData of orderItems) {
+      const orderItem = this.orderItemRepository.create({
+        ...itemData,
+        orderId: savedOrder.id,
+      });
+      await this.orderItemRepository.save(orderItem);
+    }
+
+    return this.findOne(userId, savedOrder.id);
   }
 
   async findAll(userId: string): Promise<Order[]> {
-    return this.orders.filter(order => order.userId === userId);
+    return await this.orderRepository.find({
+      where: { userId },
+      relations: ['items', 'items.product'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(userId: string, orderId: string): Promise<Order> {
-    const order = this.orders.find(
-      order => order.userId === userId && order.id === orderId
-    );
-    
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId, userId },
+      relations: ['items', 'items.product'],
+    });
+
     if (!order) {
       throw new NotFoundException(`Order with ID ${orderId} not found`);
     }
-    
+
     return order;
   }
 
   async updateStatus(
     userId: string,
     orderId: string,
-    status: Order['status']
+    status: OrderStatus,
   ): Promise<Order> {
     const order = await this.findOne(userId, orderId);
     order.status = status;
-    order.updatedAt = new Date();
+    await this.orderRepository.save(order);
     return order;
+  }
+
+  async addTrackingNumber(
+    orderId: string,
+    trackingNumber: string,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.product'],
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${orderId} not found`);
+    }
+
+    order.trackingNumber = trackingNumber;
+    order.status = OrderStatus.SHIPPED;
+    return await this.orderRepository.save(order);
   }
 }

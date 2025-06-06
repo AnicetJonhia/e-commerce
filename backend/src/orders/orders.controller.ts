@@ -7,11 +7,13 @@ import {
   UseGuards,
   Request,
   Patch,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { OrderStatus } from './entities/order.entity';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -41,7 +43,7 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Return the order.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 404, description: 'Order not found.' })
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
     return this.ordersService.findOne(req.user.id, id);
   }
 
@@ -52,8 +54,8 @@ export class OrdersController {
   @ApiResponse({ status: 404, description: 'Order not found.' })
   async updateStatus(
     @Request() req,
-    @Param('id') id: string,
-    @Body('status') status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') status: OrderStatus
   ) {
     return this.ordersService.updateStatus(req.user.id, id, status);
   }

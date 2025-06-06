@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class OrderItemDto {
   @ApiProperty({
     description: 'Product ID',
-    example: 1,
+    example: 'uuid-string',
   })
-  @IsNumber()
-  productId: number;
+  @IsUUID()
+  productId: string;
 
   @ApiProperty({
     description: 'Quantity',
@@ -16,20 +16,6 @@ class OrderItemDto {
   })
   @IsNumber()
   quantity: number;
-
-  @ApiProperty({
-    description: 'Price per item',
-    example: 99.99,
-  })
-  @IsNumber()
-  price: number;
-
-  @ApiProperty({
-    description: 'Product name',
-    example: 'Wireless Headphones',
-  })
-  @IsString()
-  name: string;
 }
 
 class ShippingAddressDto {

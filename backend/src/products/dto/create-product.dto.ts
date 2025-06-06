@@ -9,7 +9,8 @@ import {
   Min, 
   Max, 
   IsUrl,
-  ArrayMinSize
+  ArrayMinSize,
+  IsUUID
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -47,9 +48,9 @@ export class CreateProductDto {
   images: string[];
 
   @ApiProperty({ description: 'Product category ID' })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  category: string;
+  categoryId: string;
 
   @ApiProperty({ description: 'Whether the product is featured', default: false })
   @IsBoolean()

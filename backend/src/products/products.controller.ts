@@ -8,9 +8,9 @@ import {
   Param, 
   Query,
   UseGuards,
-  ParseIntPipe 
+  ParseUUIDPipe 
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -25,14 +25,21 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all products' })
-  @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
+  @ApiQuery({ name: 'categoryId', required: false, description: 'Filter by category ID' })
   @ApiQuery({ name: 'search', required: false, description: 'Search term' })
   @ApiResponse({ status: 200, description: 'Return all products.' })
   async findAll(
-    @Query('category') category?: string,
+    @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
   ) {
-    return this.productsService.findAll(category, search);
+    return this.productsService.findAll(categoryId, search);
+  }
+
+  @Get('featured')
+  @ApiOperation({ summary: 'Get featured products' })
+  @ApiResponse({ status: 200, description: 'Return featured products.' })
+  async getFeatured() {
+    return this.productsService.getFeatured();
   }
 
   @Get(':id')
@@ -40,13 +47,14 @@ export class ProductsController {
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Return the product.' })
   @ApiResponse({ status: 404, description: 'Product not found.' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findOne(id);
   }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new product' })
   @ApiBody({ type: CreateProductDto })
   @ApiResponse({ status: 201, description: 'The product has been successfully created.' })
@@ -57,13 +65,14 @@ export class ProductsController {
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a product' })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiBody({ type: UpdateProductDto })
   @ApiResponse({ status: 200, description: 'The product has been successfully updated.' })
   @ApiResponse({ status: 404, description: 'Product not found.' })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
     return this.productsService.update(id, updateProductDto);
@@ -72,11 +81,12 @@ export class ProductsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a product' })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'The product has been successfully deleted.' })
   @ApiResponse({ status: 404, description: 'Product not found.' })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }
 
@@ -84,7 +94,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Get products by category' })
   @ApiParam({ name: 'categoryId', description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Return products by category.' })
-  async findByCategory(@Param('categoryId') categoryId: string) {
+  async findByCategory(@Param('categoryId', ParseUUIDPipe) categoryId: string) {
     return this.productsService.findByCategory(categoryId);
   }
 }
