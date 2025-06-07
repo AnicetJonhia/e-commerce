@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import * as bcrypt from 'bcryptjs';
+
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -12,8 +12,15 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.seedAdminOnly();
-  }
+  // await this.clearAdminSeed(); 
+  await this.seedAdminOnly();
+}
+
+//   async clearAdminSeed() {
+//   await this.userRepository.delete({ email: 'admin@aj.aj' });
+//   console.log('🗑 Admin user deleted');
+// }
+
 
   async seedAdminOnly() {
     const existingAdmin = await this.userRepository.findOne({
@@ -27,7 +34,7 @@ export class SeedService implements OnModuleInit {
 
     const adminUser = this.userRepository.create({
       email: 'admin@aj.aj',
-      password: await bcrypt.hash('Admin123*', 12),
+      password: 'Admin123*',
       firstName: 'Admin',
       lastName: 'User',
       roles: ['admin', 'user'],
