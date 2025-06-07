@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { OrdersModule } from './orders/orders.module';
 import { CamundaModule } from './camunda/camunda.module';
+import { SeedModule } from './seeds/seed.module';
 
 @Module({
   imports: [
@@ -20,6 +21,8 @@ import { CamundaModule } from './camunda/camunda.module';
     UsersModule,
     OrdersModule,
     CamundaModule,
+    SeedModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],
