@@ -16,9 +16,12 @@ export class SeedService implements OnModuleInit {
   }
 
   async seedAdminOnly() {
-    const userCount = await this.userRepository.count();
-    if (userCount > 0) {
-      console.log('ℹ️ Users already exist. Skipping seed.');
+    const existingAdmin = await this.userRepository.findOne({
+      where: { email: 'admin@aj.aj' },
+    });
+
+    if (existingAdmin) {
+      console.log('ℹ️ Admin already exists. Skipping seed.');
       return;
     }
 
